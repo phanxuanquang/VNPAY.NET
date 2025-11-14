@@ -1,4 +1,6 @@
-﻿using VNPAY.NET.Extensions;
+﻿
+using Microsoft.OpenApi;
+using VNPAY.NET.Extensions;
 
 namespace Backend_API_Testing
 {
@@ -24,17 +26,21 @@ namespace Backend_API_Testing
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "VNPAY API with ASP.NET Core",
                     Version = "v1",
-                    Description = "Created by Phan Xuan Quang"
+                    Description = "Created by Phan Xuan Quang",
                 });
             });
 
             var app = builder.Build();
 
-            app.UseSwagger();
+            app.UseSwagger(c =>
+            {
+                c.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+            });
+
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");

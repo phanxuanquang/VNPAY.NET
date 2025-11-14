@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using VNPAY.NET;
 using VNPAY.NET.Enums;
-using VNPAY.NET.Extensions;
 using VNPAY.NET.Models;
 
 namespace Backend_API_Testing.Controllers
