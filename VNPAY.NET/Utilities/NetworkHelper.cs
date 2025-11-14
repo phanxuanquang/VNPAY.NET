@@ -17,11 +17,12 @@ namespace VNPAY.NET.Utilities
 
             if (remoteIpAddress != null)
             {
-                var ipv4Address = Dns.GetHostEntry(remoteIpAddress).AddressList.FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork);
+                if (remoteIpAddress.IsIPv4MappedToIPv6)
+                {
+                    return remoteIpAddress.MapToIPv4().ToString();
+                }
 
-                return remoteIpAddress.AddressFamily == AddressFamily.InterNetworkV6 && ipv4Address != null
-                    ? ipv4Address.ToString()
-                    : remoteIpAddress.ToString();
+                return remoteIpAddress.ToString();
             }
 
             throw new InvalidOperationException("Không tìm thấy địa chỉ IP");
