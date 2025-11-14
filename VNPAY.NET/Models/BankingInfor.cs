@@ -1,4 +1,4 @@
-﻿namespace VNPAY.NET.Models
+﻿namespace VNPAY.Models
 {
     /// <summary>
     /// Thông tin về ngân hàng liên quan đến giao dịch.

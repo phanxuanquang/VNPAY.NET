@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace VNPAY.NET.Extensions
+namespace VNPAY.Extensions
 {
     public static class HttpContextExtensions
     {

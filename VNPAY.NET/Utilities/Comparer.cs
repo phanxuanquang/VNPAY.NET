@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace VNPAY.NET.Utilities
+namespace VNPAY.Utilities
 {
     internal class Comparer : IComparer<string>
     {

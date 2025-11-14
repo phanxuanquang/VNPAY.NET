@@ -1,4 +1,4 @@
-﻿namespace VNPAY.NET.Enums
+﻿namespace VNPAY.Models.Enums
 {
     using System.ComponentModel;
 

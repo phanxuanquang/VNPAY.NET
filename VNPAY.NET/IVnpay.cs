@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
-using VNPAY.NET.Models;
+using VNPAY.Models;
 
-namespace VNPAY.NET
+namespace VNPAY
 {
     /// <summary>
     /// Giao diện định nghĩa các phương thức cần thiết để tích hợp với hệ thống thanh toán VNPAY.

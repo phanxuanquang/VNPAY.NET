@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using VNPAY.NET;
-using VNPAY.NET.Enums;
-using VNPAY.NET.Models;
+using VNPAY;
+using VNPAY.Models;
+using VNPAY.Models.Enums;
 
 namespace Backend_API_Testing.Controllers
 {
@@ -64,8 +64,8 @@ namespace Backend_API_Testing.Controllers
         /// Thực hiện hành động sau khi thanh toán. URL này cần được khai báo với VNPAY để API này hoạt đồng (ví dụ: http://localhost:1234/api/Vnpay/IpnAction)
         /// </summary>
         /// <returns></returns>
-        [HttpGet("IpnAction")]
-        public IActionResult IpnAction()
+        [HttpGet("ProceedAfterPayment")]
+        public IActionResult ProceedAfterPayment()
         {
             if (Request.QueryString.HasValue)
             {

@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.OpenApi;
-using VNPAY.NET.Extensions;
+using VNPAY.Extensions;
 
 namespace Backend_API_Testing
 {
@@ -10,19 +10,21 @@ namespace Backend_API_Testing
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            var vnpayConfig = builder.Configuration.GetSection("Vnpay");
+            #region Add VNPAY Payment Service
+            var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
-            builder.Services.AddVnPayPayment(options =>
+            builder.Services.AddVnPayPayment(configs =>
             {
-                options.TmnCode = vnpayConfig["TmnCode"]!;
-                options.HashSecret = vnpayConfig["HashSecret"]!;
-                options.BaseUrl = vnpayConfig["BaseUrl"]!;
-                options.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+                configs.TmnCode = vnpayConfig["TmnCode"]!;
+                configs.HashSecret = vnpayConfig["HashSecret"]!;
+                configs.BaseUrl = vnpayConfig["BaseUrl"]!;
+                configs.CallbackUrl = vnpayConfig["CallbackUrl"]!;
             });
+            #endregion
 
             builder.Services.AddControllers();
 
-            // Add Swagger UI
+            #region Add Swagger UI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -45,6 +47,7 @@ namespace Backend_API_Testing
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
             });
+            #endregion
 
             app.UseHttpsRedirection();
             app.UseAuthorization();

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace VNPAY.NET.Extensions
+namespace VNPAY.Extensions
 {
     internal static class EnumExtensions
     {

@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 
-namespace VNPAY.NET.Utilities
+namespace VNPAY.Utilities
 {
     internal class PaymentHelper
     {

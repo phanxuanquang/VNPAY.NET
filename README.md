@@ -86,7 +86,7 @@ flowchart LR
 Thêm những thông tin cấu hình lấy từ VNPAY vào `appsettings.json` như ví dụ sau:
 ```json
 {
-  "Vnpay": {
+  "VNPAY": {
     "TmnCode": "A1B2C3D4", // Ví dụ
     "HashSecret": "A4D3C4C6D1Đ3D1D4QCS16PAFHI2GJ42D", // Ví dụ
     "BaseUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", // Ví dụ URL của môi trường Sandbox
@@ -102,23 +102,17 @@ Thêm những thông tin cấu hình lấy từ VNPAY vào `appsettings.json` nh
 Trong file `Program.cs`, thêm cấu hình VNPAY vào container:
 
 ```csharp
-using VNPAY.NET.Extensions;
+using VNPAY.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
-// Thêm VNPAY service vào container
-builder.Services.AddVnpay(builder.Configuration);
-
-// Hoặc cấu hình thủ công:
-// builder.Services.AddVnpay(options =>
-// {
-//     options.TmnCode = "YOUR_TMN_CODE";
-//     options.HashSecret = "YOUR_HASH_SECRET";
-//     options.BaseUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-//     options.CallbackUrl = "https://localhost:1234/api/Vnpay/Callback";
-//     options.Version = "2.1.0";
-//     options.OrderType = "other";
-// });
+builder.Services.AddVnPayPayment(configs =>
+{
+    configs.TmnCode = vnpayConfig["TmnCode"]!;
+    configs.HashSecret = vnpayConfig["HashSecret"]!;
+    configs.BaseUrl = vnpayConfig["BaseUrl"]!;
+    configs.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+});
 
 builder.Services.AddControllers();
 

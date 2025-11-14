@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace VNPAY.NET.Enums
+namespace VNPAY.Models.Enums
 {
     /// <summary>
     /// Đơn vị tiền tệ sử dụng cho giao dịch

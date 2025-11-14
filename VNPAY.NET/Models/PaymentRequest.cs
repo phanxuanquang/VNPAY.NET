@@ -1,6 +1,6 @@
-﻿using VNPAY.NET.Enums;
+﻿using VNPAY.Models.Enums;
 
-namespace VNPAY.NET.Models
+namespace VNPAY.Models
 {
     /// <summary>
     /// Yêu cầu thanh toán gửi đến cổng thanh toán VNPAY.

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace VNPAY.NET.Enums
+namespace VNPAY.Models.Enums
 {
     /// <summary>
     /// Ngôn ngữ hiển thị trên giao diện thanh toán VNPAY.  

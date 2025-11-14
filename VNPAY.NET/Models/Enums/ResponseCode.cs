@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace VNPAY.NET.Enums
+namespace VNPAY.Models.Enums
 {
     /// <summary>
     /// Mã phản hồi qua IPN và Callback URL

@@ -1,17 +1,17 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System.Globalization;
-using VNPAY.NET.Enums;
-using VNPAY.NET.Extensions;
-using VNPAY.NET.Extensions.Options;
-using VNPAY.NET.Models;
-using VNPAY.NET.Utilities;
+using VNPAY.Extensions;
+using VNPAY.Extensions.Options;
+using VNPAY.Models;
+using VNPAY.Models.Enums;
+using VNPAY.Utilities;
 
-namespace VNPAY.NET
+namespace VNPAY
 {
-    public class Vnpay(IOptions<VnpayOptions> options, IHttpContextAccessor httpContextAccessor) : IVnpay
+    public class Vnpay(IOptions<VnpayConfigurations> options, IHttpContextAccessor httpContextAccessor) : IVnpay
     {
-        private readonly VnpayOptions _options = options.Value;
+        private readonly VnpayConfigurations _options = options.Value;
         private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
         /// <summary>

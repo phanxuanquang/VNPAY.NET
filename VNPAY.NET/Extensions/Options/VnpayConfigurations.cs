@@ -1,9 +1,9 @@
-namespace VNPAY.NET.Extensions.Options
+namespace VNPAY.Extensions.Options
 {
     /// <summary>
     /// Configuration options for VNPAY integration
     /// </summary>
-    public class VnpayOptions
+    public class VnpayConfigurations
     {
         /// <summary>
         /// Mã cửa hàng của bạn trên VNPAY.

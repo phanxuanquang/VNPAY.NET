@@ -1,6 +1,6 @@
-﻿using VNPAY.NET.Enums;
+﻿using VNPAY.Models.Enums;
 
-namespace VNPAY.NET.Models
+namespace VNPAY.Models
 {
     /// <summary>
     /// Trạng thái của giao dịch sau khi được xử lý.

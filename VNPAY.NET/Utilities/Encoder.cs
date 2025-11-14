@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace VNPAY.NET.Utilities
+namespace VNPAY.Utilities
 {
     internal static class Encoder
     {

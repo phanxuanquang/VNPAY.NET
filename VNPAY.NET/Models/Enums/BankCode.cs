@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace VNPAY.NET.Enums
+namespace VNPAY.Models.Enums
 {
     /// <summary>
     /// Các phương thức thanh toán được VNPAY hỗ trợ.  
