@@ -1,36 +1,18 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using System.Globalization;
 using VNPAY.NET.Enums;
+using VNPAY.NET.Extensions;
+using VNPAY.NET.Extensions.Options;
 using VNPAY.NET.Models;
 using VNPAY.NET.Utilities;
 
 namespace VNPAY.NET
 {
-    public class Vnpay : IVnpay
+    public class Vnpay(IOptions<VnpayOptions> options, IHttpContextAccessor httpContextAccessor) : IVnpay
     {
-        private string _tmnCode;
-        private string _hashSecret;
-        private string _callbackUrl;
-        private string _baseUrl;
-        private string _version;
-        private string _orderType;
-
-        public void Initialize(string tmnCode,
-            string hashSecret,
-            string baseUrl,
-            string callbackUrl,
-            string version = "2.1.0",
-            string orderType = "other")
-        {
-            _tmnCode = tmnCode;
-            _hashSecret = hashSecret;
-            _callbackUrl = callbackUrl;
-            _baseUrl = baseUrl;
-            _version = version;
-            _orderType = orderType;
-
-            EnsureParametersBeforePayment();
-        }
+        private readonly VnpayOptions _options = options.Value;
+        private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
         /// <summary>
         /// Tạo URL thanh toán 
@@ -39,9 +21,7 @@ namespace VNPAY.NET
         /// <returns></returns>
         public string GetPaymentUrl(PaymentRequest request)
         {
-            EnsureParametersBeforePayment();
-
-            if (request.Money < 5000 || request.Money > 1000000000)
+            if (request.MoneyInVnd < 5000 || request.MoneyInVnd > 1000000000)
             {
                 throw new ArgumentException("Số tiền thanh toán phải nằm trong khoảng 5.000 (VND) đến 1.000.000.000 (VND).");
             }
@@ -51,27 +31,24 @@ namespace VNPAY.NET
                 throw new ArgumentException("Không được để trống mô tả giao dịch.");
             }
 
-            if (string.IsNullOrEmpty(request.IpAddress))
-            {
-                throw new ArgumentException("Không được để trống địa chỉ IP.");
-            }
+            var ipAddress = GetCurrentUserIpAddress();
 
             var helper = new PaymentHelper();
-            helper.AddRequestData("vnp_Version", _version);
+            helper.AddRequestData("vnp_Version", _options.Version);
             helper.AddRequestData("vnp_Command", "pay");
-            helper.AddRequestData("vnp_TmnCode", _tmnCode);
-            helper.AddRequestData("vnp_Amount", (request.Money * 100).ToString());
-            helper.AddRequestData("vnp_CreateDate", request.CreatedDate.ToString("yyyyMMddHHmmss"));
+            helper.AddRequestData("vnp_TmnCode", _options.TmnCode);
+            helper.AddRequestData("vnp_Amount", (request.MoneyInVnd * 100).ToString());
+            helper.AddRequestData("vnp_CreateDate", request.CreatedTime.ToString("yyyyMMddHHmmss"));
             helper.AddRequestData("vnp_CurrCode", request.Currency.ToString().ToUpper());
-            helper.AddRequestData("vnp_IpAddr", request.IpAddress);
-            helper.AddRequestData("vnp_Locale", EnumHelper.GetDescription(request.Language));
+            helper.AddRequestData("vnp_IpAddr", ipAddress);
+            helper.AddRequestData("vnp_Locale", request.Language.GetDescription());
             helper.AddRequestData("vnp_BankCode", request.BankCode == BankCode.ANY ? string.Empty : request.BankCode.ToString());
             helper.AddRequestData("vnp_OrderInfo", request.Description.Trim());
-            helper.AddRequestData("vnp_OrderType", _orderType);
-            helper.AddRequestData("vnp_ReturnUrl", _callbackUrl);
+            helper.AddRequestData("vnp_OrderType", _options.OrderType);
+            helper.AddRequestData("vnp_ReturnUrl", _options.CallbackUrl);
             helper.AddRequestData("vnp_TxnRef", request.PaymentId.ToString());
 
-            return helper.GetPaymentUrl(_baseUrl, _hashSecret);
+            return helper.GetPaymentUrl(_options.BaseUrl, _options.HashSecret);
         }
 
         /// <summary>
@@ -123,7 +100,7 @@ namespace VNPAY.NET
             {
                 PaymentId = long.Parse(vnp_TxnRef),
                 VnpayTransactionId = long.Parse(vnp_TransactionNo),
-                IsSuccess = transactionStatusCode == TransactionStatusCode.Code_00 && responseCode == ResponseCode.Code_00 && helper.IsSignatureCorrect(vnp_SecureHash, _hashSecret),
+                IsSuccess = transactionStatusCode == TransactionStatusCode.Code_00 && responseCode == ResponseCode.Code_00 && helper.IsSignatureCorrect(vnp_SecureHash, _options.HashSecret),
                 Description = vnp_OrderInfo,
                 PaymentMethod = string.IsNullOrEmpty(vnp_CardType)
                     ? "Không xác định"
@@ -134,12 +111,12 @@ namespace VNPAY.NET
                 TransactionStatus = new TransactionStatus
                 {
                     Code = transactionStatusCode,
-                    Description = EnumHelper.GetDescription(transactionStatusCode)
+                    Description = transactionStatusCode.GetDescription()
                 },
                 PaymentResponse = new PaymentResponse
                 {
                     Code = responseCode,
-                    Description = EnumHelper.GetDescription(responseCode)
+                    Description = responseCode.GetDescription()
                 },
                 BankingInfor = new BankingInfor
                 {
@@ -151,12 +128,14 @@ namespace VNPAY.NET
             };
         }
 
-        private void EnsureParametersBeforePayment()
+        /// <summary>
+        /// Lấy địa chỉ IP từ HttpContext hiện tại
+        /// </summary>
+        /// <returns>Địa chỉ IP của client</returns>
+        private string GetCurrentUserIpAddress()
         {
-            if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_tmnCode) || string.IsNullOrEmpty(_hashSecret) || string.IsNullOrEmpty(_callbackUrl))
-            {
-                throw new ArgumentException("Không tìm thấy BaseUrl, TmnCode, HashSecret, hoặc CallbackUrl");
-            }
+            var httpContext = _httpContextAccessor.HttpContext;
+            return httpContext == null ? throw new InvalidOperationException("HttpContext không khả dụng") : httpContext.GetIpAddress();
         }
     }
 }

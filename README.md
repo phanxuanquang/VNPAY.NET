@@ -55,7 +55,8 @@ flowchart LR
 
 ## :electric_plug: Cài đặt thư viện `VNPAY.NET`
 > [!NOTE]
-> Phiên bản dành cho .NET 8 có phiên bản dạng `8.x.x`, và phiên bản dành cho .NET 6 có phiên bản dạng `6.x.x`.
+> - Phiên bản dành cho .NET 8 có phiên bản dạng `8.x.x`, và phiên bản dành cho .NET 6 có phiên bản dạng `6.x.x`.
+> - Từ phiên bản 6.5.0 trở lên, thư viện đã hỗ trợ Dependency Injection (DI) để cấu hình dễ dàng hơn.
 
 - Cách 1: Tìm và cài đặt thông qua **NuGet Package Manager** nếu bạn sử dụng Visual Studio.
 
@@ -69,10 +70,12 @@ flowchart LR
 
 | Thông tin    | Mô tả                                                                                                                                                                           |
 |--------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `vnp_TmnCode`      | Mã định danh kết nối được khai báo tại hệ thống của VNPAY. Mã định danh tương ứng với tên miền website, ứng dụng, dịch vụ của merchant kết nối vào VNPAY. Mỗi đơn vị có thể có một hoặc nhiều mã TmnCode kết nối. |
-| `vnp_HashSecret`   | Chuỗi bí mật sử dụng để kiểm tra toàn vẹn dữ liệu khi hai hệ thống trao đổi thông tin (checksum).                                                                               |
+| `TmnCode`      | Mã định danh kết nối được khai báo tại hệ thống của VNPAY. Mã định danh tương ứng với tên miền website, ứng dụng, dịch vụ của merchant kết nối vào VNPAY. Mỗi đơn vị có thể có một hoặc nhiều mã TmnCode kết nối. |
+| `HashSecret`   | Chuỗi bí mật sử dụng để kiểm tra toàn vẹn dữ liệu khi hai hệ thống trao đổi thông tin (checksum).                                                                               |
 | `BaseUrl`      | URL thanh toán. Đối với môi trường Sandbox (thử nghiệm), URL là `https://sandbox.vnpayment.vn/paymentv2/vpcpay.html`.                                                                      |
-| `vnp_ReturnUrl`  | URL truy vấn kết quả giao dịch. URL này được tự động chuyển đến sau khi giao dịch được thực hiện.                                                                              |
+| `CallbackUrl`  | URL truy vấn kết quả giao dịch. URL này được tự động chuyển đến sau khi giao dịch được thực hiện.                                                                              |
+| `Version`      | Phiên bản API VNPAY (mặc định: "2.1.0").                                                                                                                                        |
+| `OrderType`    | Loại đơn hàng (mặc định: "other").                                                                                                                                              |
 
 ## :dart: Hướng dẫn sử dụng
 
@@ -81,57 +84,69 @@ flowchart LR
 > Cần đảm bảo thông tin `vnp_TmnCode` và `vnp_HashSecret` bảo mật tuyệt đối.
 
 Thêm những thông tin cấu hình lấy từ VNPAY vào `appsettings.json` như ví dụ sau:
-```cs
+```json
 {
   "Vnpay": {
     "TmnCode": "A1B2C3D4", // Ví dụ
     "HashSecret": "A4D3C4C6D1Đ3D1D4QCS16PAFHI2GJ42D", // Ví dụ
     "BaseUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", // Ví dụ URL của môi trường Sandbox
-    "ReturnUrl": "https://localhost:1234/api/Vnpay/Callback" // Ví dụ
+    "CallbackUrl": "https://localhost:1234/api/Vnpay/Callback", // Ví dụ
+    "Version": "2.1.0", // Tùy chọn, mặc định là 2.1.0
+    "OrderType": "other" // Tùy chọn, mặc định là other
   }
 }
 ```
 
-### 1. Khởi tạo
+### 2. Cấu hình Dependency Injection
 
-- Cách 1 - Thông qua Dependency Injection:
+Trong file `Program.cs`, thêm cấu hình VNPAY vào container:
+
 ```csharp
-using VNPAY.NET;
+using VNPAY.NET.Extensions;
 
-public class VnpayPayment
-{
-    private readonly IVnpay _vnpay;
-    private readonly IConfiguration _configuration;
+var builder = WebApplication.CreateBuilder(args);
 
-    public VnpayPayment(IVnpay vnpay, IConfiguration configuration)
-    {
-        _vnpay = vnpay;
-        _configuration = configuration;
+// Thêm VNPAY service vào container
+builder.Services.AddVnpay(builder.Configuration);
 
-        _vnpay.Initialize(_configuration["Vnpay:TmnCode"], _configuration["Vnpay:HashSecret"], _configuration["Vnpay:BaseUrl"], _configuration["Vnpay:CallbackUrl"]);
-    }
-}
+// Hoặc cấu hình thủ công:
+// builder.Services.AddVnpay(options =>
+// {
+//     options.TmnCode = "YOUR_TMN_CODE";
+//     options.HashSecret = "YOUR_HASH_SECRET";
+//     options.BaseUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+//     options.CallbackUrl = "https://localhost:1234/api/Vnpay/Callback";
+//     options.Version = "2.1.0";
+//     options.OrderType = "other";
+// });
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+
+app.MapControllers();
+app.Run();
 ```
 
-- Cách 2 - Khởi tạo đối tượng:
+### 3. Sử dụng trong Controller
+
+Trong Controller, inject `IVnpay` thông qua constructor:
+
 ```csharp
 using VNPAY.NET;
 
-public class VnpayPayment
+[ApiController]
+[Route("api/[controller]")]
+public class VnpayController : ControllerBase
 {
-    private string _tmnCode;
-    private string _hashSecret;
-    private string _baseUrl;
-    private string _callbackUrl;
-
     private readonly IVnpay _vnpay;
 
-    public VnpayPayment()
+    public VnpayController(IVnpay vnpay)
     {
-        // Khởi tạo giá trị cho _tmnCode, _hashSecret, _baseUrl, _callbackUrl tại đây.
-        _vnpay = new Vnpay();
-        _vnpay.Initialize(_tmnCode, _hashSecret, _baseUrl, _callbackUrl);
+        _vnpay = vnpay;
     }
+    
+    // Các phương thức xử lý thanh toán...
 }
 ```
 ## ⚙️ Xây dựng các Controller xử lý thanh toán

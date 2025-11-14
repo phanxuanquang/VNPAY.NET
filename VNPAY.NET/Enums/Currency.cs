@@ -5,8 +5,11 @@ namespace VNPAY.NET.Enums
     /// <summary>
     /// Đơn vị tiền tệ sử dụng cho giao dịch
     /// </summary>
-    public enum Currency
+    internal enum Currency
     {
+        /// <summary>
+        /// Việt Nam đồng
+        /// </summary>
         [Description("Việt Nam đồng")]
         VND,
 

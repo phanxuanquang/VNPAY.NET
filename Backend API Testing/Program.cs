@@ -1,5 +1,4 @@
-﻿
-using VNPAY.NET;
+﻿using VNPAY.NET.Extensions;
 
 namespace Backend_API_Testing
 {
@@ -9,8 +8,15 @@ namespace Backend_API_Testing
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add VNPAY service to the container.
-            builder.Services.AddSingleton<IVnpay, Vnpay>();
+            var vnpayConfig = builder.Configuration.GetSection("Vnpay");
+
+            builder.Services.AddVnPayPayment(options =>
+            {
+                options.TmnCode = vnpayConfig["TmnCode"]!;
+                options.HashSecret = vnpayConfig["HashSecret"]!;
+                options.BaseUrl = vnpayConfig["BaseUrl"]!;
+                options.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+            });
 
             builder.Services.AddControllers();
 
@@ -35,10 +41,7 @@ namespace Backend_API_Testing
             });
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
 
             app.Run();

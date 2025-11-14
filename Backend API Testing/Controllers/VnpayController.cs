@@ -1,25 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using VNPAY.NET;
 using VNPAY.NET.Enums;
+using VNPAY.NET.Extensions;
 using VNPAY.NET.Models;
-using VNPAY.NET.Utilities;
 
 namespace Backend_API_Testing.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class VnpayController : ControllerBase
+    public class VnpayController(IVnpay vnPay) : ControllerBase
     {
-        private readonly IVnpay _vnpay;
-        private readonly IConfiguration _configuration;
-
-        public VnpayController(IVnpay vnPayservice, IConfiguration configuration)
-        {
-            _vnpay = vnPayservice;
-            _configuration = configuration;
-
-            _vnpay.Initialize(_configuration["Vnpay:TmnCode"], _configuration["Vnpay:HashSecret"], _configuration["Vnpay:BaseUrl"], _configuration["Vnpay:CallbackUrl"]);
-        }
+        private readonly IVnpay _vnpay = vnPay;
 
         /// <summary>
         /// Tạo url thanh toán
@@ -32,22 +23,36 @@ namespace Backend_API_Testing.Controllers
         {
             try
             {
-                var ipAddress = NetworkHelper.GetIpAddress(HttpContext); // Lấy địa chỉ IP của thiết bị thực hiện giao dịch
-
                 var request = new PaymentRequest
                 {
-                    PaymentId = DateTime.Now.Ticks,
-                    Money = money,
+                    MoneyInVnd = money,
                     Description = description,
-                    IpAddress = ipAddress,
                     BankCode = BankCode.ANY, // Tùy chọn. Mặc định là tất cả phương thức giao dịch
-                    CreatedDate = DateTime.Now, // Tùy chọn. Mặc định là thời điểm hiện tại
-                    Currency = Currency.VND, // Tùy chọn. Mặc định là VND (Việt Nam đồng)
+                    CreatedTime = DateTime.UtcNow, // Tùy chọn. Mặc định là thời điểm hiện tại
                     Language = DisplayLanguage.Vietnamese // Tùy chọn. Mặc định là tiếng Việt
                 };
 
                 var paymentUrl = _vnpay.GetPaymentUrl(request);
 
+                return Created(paymentUrl, paymentUrl);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Tạo url thanh toán từ PaymentRequest
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet("CreatePaymentUrlFromRequest")]
+        public ActionResult<string> CreatePaymentUrlFromRequest(PaymentRequest request)
+        {
+            try
+            {
+                var paymentUrl = _vnpay.GetPaymentUrl(request);
                 return Created(paymentUrl, paymentUrl);
             }
             catch (Exception ex)
