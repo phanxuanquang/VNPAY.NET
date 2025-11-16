@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.Net;
+using System.Text;
 using VNPAY.Extensions;
 using VNPAY.Extensions.Options;
 using VNPAY.Models;
@@ -33,22 +35,42 @@ namespace VNPAY
 
             var ipAddress = GetCurrentUserIpAddress();
 
-            var helper = new PaymentHelper();
-            helper.AddRequestData("vnp_Version", _options.Version);
-            helper.AddRequestData("vnp_Command", "pay");
-            helper.AddRequestData("vnp_TmnCode", _options.TmnCode);
-            helper.AddRequestData("vnp_Amount", (request.MoneyInVnd * 100).ToString());
-            helper.AddRequestData("vnp_CreateDate", request.CreatedTime.ToString("yyyyMMddHHmmss"));
-            helper.AddRequestData("vnp_CurrCode", request.Currency.ToString().ToUpper());
-            helper.AddRequestData("vnp_IpAddr", ipAddress);
-            helper.AddRequestData("vnp_Locale", request.Language.GetDescription());
-            helper.AddRequestData("vnp_BankCode", request.BankCode == BankCode.ANY ? string.Empty : request.BankCode.ToString());
-            helper.AddRequestData("vnp_OrderInfo", request.Description.Trim());
-            helper.AddRequestData("vnp_OrderType", _options.OrderType);
-            helper.AddRequestData("vnp_ReturnUrl", _options.CallbackUrl);
-            helper.AddRequestData("vnp_TxnRef", request.PaymentId.ToString());
+            var requestData = new SortedList<string, string>(new Comparer());
+            
+            // Thêm dữ liệu yêu cầu vào SortedList
+            if (!string.IsNullOrEmpty(_options.Version))
+                requestData.Add("vnp_Version", _options.Version);
+            
+            requestData.Add("vnp_Command", "pay");
+            
+            if (!string.IsNullOrEmpty(_options.TmnCode))
+                requestData.Add("vnp_TmnCode", _options.TmnCode);
+                
+            requestData.Add("vnp_Amount", (request.MoneyInVnd * 100).ToString());
+            requestData.Add("vnp_CreateDate", request.CreatedTime.ToString("yyyyMMddHHmmss"));
+            requestData.Add("vnp_CurrCode", request.Currency.ToString().ToUpper());
+            
+            if (!string.IsNullOrEmpty(ipAddress))
+                requestData.Add("vnp_IpAddr", ipAddress);
+                
+            requestData.Add("vnp_Locale", request.Language.GetDescription());
+            
+            var bankCode = request.BankCode == BankCode.ANY ? string.Empty : request.BankCode.ToString();
+            if (!string.IsNullOrEmpty(bankCode))
+                requestData.Add("vnp_BankCode", bankCode);
+                
+            if (!string.IsNullOrEmpty(request.Description.Trim()))
+                requestData.Add("vnp_OrderInfo", request.Description.Trim());
+                
+            if (!string.IsNullOrEmpty(_options.OrderType))
+                requestData.Add("vnp_OrderType", _options.OrderType);
+                
+            if (!string.IsNullOrEmpty(_options.CallbackUrl))
+                requestData.Add("vnp_ReturnUrl", _options.CallbackUrl);
+                
+            requestData.Add("vnp_TxnRef", request.PaymentId.ToString());
 
-            return helper.GetPaymentUrl(_options.BaseUrl, _options.HashSecret);
+            return CreatePaymentUrl(requestData, _options.BaseUrl, _options.HashSecret);
         }
 
         /// <summary>
@@ -84,12 +106,13 @@ namespace VNPAY
                 throw new ArgumentException("Không đủ dữ liệu để xác thực giao dịch");
             }
 
-            var helper = new PaymentHelper();
+            // Tạo SortedList với Comparer để xử lý dữ liệu phản hồi
+            var sortedResponseData = new SortedList<string, string>(new Comparer());
             foreach (var (key, value) in responseData)
             {
-                if (!key.Equals("vnp_SecureHash"))
+                if (!key.Equals("vnp_SecureHash") && !string.IsNullOrEmpty(value))
                 {
-                    helper.AddResponseData(key, value);
+                    sortedResponseData.Add(key, value);
                 }
             }
 
@@ -100,7 +123,7 @@ namespace VNPAY
             {
                 PaymentId = long.Parse(vnp_TxnRef),
                 VnpayTransactionId = long.Parse(vnp_TransactionNo),
-                IsSuccess = transactionStatusCode == TransactionStatusCode.Code_00 && responseCode == ResponseCode.Code_00 && helper.IsSignatureCorrect(vnp_SecureHash, _options.HashSecret),
+                IsSuccess = transactionStatusCode == TransactionStatusCode.Code_00 && responseCode == ResponseCode.Code_00 && IsSignatureCorrect(sortedResponseData, vnp_SecureHash, _options.HashSecret),
                 Description = vnp_OrderInfo,
                 PaymentMethod = string.IsNullOrEmpty(vnp_CardType)
                     ? "Không xác định"
@@ -137,5 +160,81 @@ namespace VNPAY
             var httpContext = _httpContextAccessor.HttpContext;
             return httpContext == null ? throw new InvalidOperationException("HttpContext không khả dụng") : httpContext.GetIpAddress();
         }
+
+        #region Private Payment Helper Methods
+
+        /// <summary>
+        /// Tạo URL thanh toán từ dữ liệu yêu cầu
+        /// </summary>
+        /// <param name="requestData">Dữ liệu yêu cầu thanh toán</param>
+        /// <param name="baseUrl">URL cơ sở của VNPAY</param>
+        /// <param name="hashSecret">Khóa bí mật để tạo chữ ký</param>
+        /// <returns>URL thanh toán hoàn chỉnh</returns>
+        private string CreatePaymentUrl(SortedList<string, string> requestData, string baseUrl, string hashSecret)
+        {
+            var queryBuilder = new StringBuilder();
+
+            foreach (var (key, value) in requestData.Where(kv => !string.IsNullOrEmpty(kv.Value)))
+            {
+                queryBuilder.Append($"{WebUtility.UrlEncode(key)}={WebUtility.UrlEncode(value)}&");
+            }
+
+            if (queryBuilder.Length > 0)
+            {
+                queryBuilder.Length--;
+            }
+
+            var signData = queryBuilder.ToString();
+            var secureHash = VNPAY.Utilities.Encoder.AsHmacSHA512(hashSecret, signData);
+
+            return $"{baseUrl}?{signData}&vnp_SecureHash={WebUtility.UrlEncode(secureHash)}";
+        }
+
+        /// <summary>
+        /// Kiểm tra tính chính xác của chữ ký phản hồi
+        /// </summary>
+        /// <param name="responseData">Dữ liệu phản hồi từ VNPAY</param>
+        /// <param name="inputHash">Chữ ký đầu vào cần kiểm tra</param>
+        /// <param name="secretKey">Khóa bí mật</param>
+        /// <returns>True nếu chữ ký chính xác</returns>
+        private bool IsSignatureCorrect(SortedList<string, string> responseData, string? inputHash, string secretKey)
+        {
+            if (string.IsNullOrEmpty(inputHash))
+            {
+                return false;
+            }
+
+            var rspRaw = GetResponseData(responseData);
+            var checksum = VNPAY.Utilities.Encoder.AsHmacSHA512(secretKey, rspRaw);
+            return checksum.Equals(inputHash, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// Tạo chuỗi dữ liệu phản hồi để kiểm tra chữ ký
+        /// </summary>
+        /// <param name="responseData">Dữ liệu phản hồi từ VNPAY</param>
+        /// <returns>Chuỗi dữ liệu được mã hóa URL</returns>
+        private string GetResponseData(SortedList<string, string> responseData)
+        {
+            // Tạo bản sao để không thay đổi dữ liệu gốc
+            var filteredData = new SortedList<string, string>(new Comparer());
+            
+            foreach (var (key, value) in responseData)
+            {
+                if (!key.Equals("vnp_SecureHashType") && 
+                    !key.Equals("vnp_SecureHash") && 
+                    !string.IsNullOrEmpty(value))
+                {
+                    filteredData.Add(key, value);
+                }
+            }
+
+            var validData = filteredData
+                .Select(kv => $"{WebUtility.UrlEncode(kv.Key)}={WebUtility.UrlEncode(kv.Value)}");
+
+            return string.Join("&", validData);
+        }
+
+        #endregion
     }
 }

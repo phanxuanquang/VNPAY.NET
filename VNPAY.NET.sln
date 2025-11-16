@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VNPAY.NET", "VNPAY.NET\VNPA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend API Testing", "Backend API Testing\Backend API Testing.csproj", "{D6276098-A168-4AB7-BCBF-69F9BFE99480}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VNPAY", "VNPAY\VNPAY.csproj", "{1EB18B1B-F581-4C6E-BA7C-CA3346F8B3B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,8 +23,15 @@ Global
 		{D6276098-A168-4AB7-BCBF-69F9BFE99480}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6276098-A168-4AB7-BCBF-69F9BFE99480}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6276098-A168-4AB7-BCBF-69F9BFE99480}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1EB18B1B-F581-4C6E-BA7C-CA3346F8B3B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1EB18B1B-F581-4C6E-BA7C-CA3346F8B3B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EB18B1B-F581-4C6E-BA7C-CA3346F8B3B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1EB18B1B-F581-4C6E-BA7C-CA3346F8B3B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {575422F2-1376-4432-9E72-6A653E639D4F}
 	EndGlobalSection
 EndGlobal
