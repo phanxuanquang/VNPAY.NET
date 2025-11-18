@@ -1,9 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Reflection;
 
-namespace VNPAY.NET.Utilities
+namespace VNPAY.Extensions
 {
-    public static class EnumHelper
+    internal static class EnumExtensions
     {
         /// <summary>
         /// Lấy mô tả của giá trị enum thông qua thuộc tính Description nếu có.
@@ -11,7 +12,7 @@ namespace VNPAY.NET.Utilities
         /// </summary>
         /// <param name="value">Giá trị enum cần lấy mô tả.</param>
         /// <returns>Mô tả của giá trị enum nếu có, nếu không thì trả về tên giá trị enum.</returns>
-        public static string GetDescription(Enum value)
+        public static string GetDescription(this Enum value)
         {
             var field = value.GetType().GetField(value.ToString());
             if (field == null)

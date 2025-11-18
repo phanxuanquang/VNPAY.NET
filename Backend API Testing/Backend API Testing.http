@@ -1,6 +1,0 @@
-@Backend_API_Testing_HostAddress = http://localhost:5099
-
-GET {{Backend_API_Testing_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
