@@ -102,15 +102,15 @@ using VNPAY.Extensions;
 
 var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
- builder.Services.AddVnpayClient(config =>
- {
-     config.TmnCode = vnpayConfig["TmnCode"]!;
-     config.HashSecret = vnpayConfig["HashSecret"]!;
-     config.CallbackUrl = vnpayConfig["CallbackUrl"]!;
-     config.BaseUrl = vnpayConfig["BaseUrl"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là URL thanh toán môi trường TEST
-     config.Version = vnpayConfig["Version"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "2.1.0"
-     config.OrderType = vnpayConfig["OrderType"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "other"
- });
+builder.Services.AddVnpayClient(config =>
+{
+    config.TmnCode = vnpayConfig["TmnCode"]!;
+    config.HashSecret = vnpayConfig["HashSecret"]!;
+    config.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+    // config.BaseUrl = vnpayConfig["BaseUrl"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là URL thanh toán môi trường TEST
+    // config.Version = vnpayConfig["Version"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "2.1.0"
+    // config.OrderType = vnpayConfig["OrderType"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "other"
+});
 ```
 
 ### 3. Sử dụng trong Controller
@@ -169,7 +169,7 @@ var paymentUrl = paymentUrlInfo.Url;
 Sử dụng IPN (Instant Payment Notification) URL cho phép hệ thống backend tự động nhận thông báo từ VNPAY khi trạng thái thanh toán thay đổi để từ đó xử lý tiếp mà không cần người dùng phải quay lại trang web. 
 
 > [!WARNING]
-> - Khi đăng ký tích hợp VNPAY, bạn cần cung cấp IPN URL (Ví dụ: `https://localhost:1234/api/Vnpay/IpnAction`) để VNPAY gọi khi có giao dịch.
+> - Khi đăng ký tích hợp VNPAY, bạn cần cung cấp IPN URL (Ví dụ: `https://localhost:1234/api/Vnpay/ProceedAfterPayment`) để VNPAY gọi khi có giao dịch được thực hiện hoàn tất.
 > - Đường dẫn IPN phải sử dụng giao thức `HTTPS` để đảm bảo an toàn.
 > - Lưu ý chi tiết đọc tại [**ĐÂY**](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html#l%C6%B0u-%C3%BD-1).
 

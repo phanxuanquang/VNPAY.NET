@@ -4,12 +4,13 @@ using VNPAY.Models;
 using VNPAY.Models.Enums;
 using VNPAY.Models.Exceptions;
 
-namespace Backend_API_Testing.Controllers
+namespace Example.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
-    public class VnpayController(IVnpayClient vnpayClient) : ControllerBase
+    [Route("[controller]")]
+    public class VnpayController(ILogger<VnpayController> logger, IVnpayClient vnpayClient) : ControllerBase
     {
+        private readonly ILogger<VnpayController> _logger = logger;
         private readonly IVnpayClient _vnpayClient = vnpayClient;
 
         /// <summary>
@@ -25,10 +26,16 @@ namespace Backend_API_Testing.Controllers
             try
             {
                 var paymentUrlInfo = _vnpayClient.CreatePaymentUrl(money, description, bankCode);
+
+                _logger.LogInformation("Payment ID: {PaymentId}", paymentUrlInfo.PaymentId);
+                _logger.LogInformation("Payment URL created: {Url}", paymentUrlInfo.Url);
+                _logger.LogInformation("Payment Parameters: {Parameters}", string.Join(", ", paymentUrlInfo.Parameters.Select(kv => $"{kv.Key}={kv.Value}")));
+
                 return Ok(paymentUrlInfo.Url);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating payment URL");
                 return BadRequest(ex.Message);
             }
         }
@@ -43,11 +50,17 @@ namespace Backend_API_Testing.Controllers
         {
             try
             {
-                var paymentUrlInfor = _vnpayClient.CreatePaymentUrl(request);
-                return Ok(paymentUrlInfor.Url);
+                var paymentUrlInfo = _vnpayClient.CreatePaymentUrl(request);
+
+                _logger.LogInformation("Payment ID: {PaymentId}", paymentUrlInfo.PaymentId);
+                _logger.LogInformation("Payment URL created: {Url}", paymentUrlInfo.Url);
+                _logger.LogInformation("Payment Parameters: {Parameters}", string.Join(", ", paymentUrlInfo.Parameters.Select(kv => $"{kv.Key}={kv.Value}")));
+
+                return Ok(paymentUrlInfo.Url);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating payment URL");
                 return BadRequest(ex.Message);
             }
         }
@@ -63,15 +76,24 @@ namespace Backend_API_Testing.Controllers
             {
                 var paymentResult = _vnpayClient.GetPaymentResult(this.Request);
 
+                // Ghi log thông tin thanh toán để tiện theo dõi nếu cần
+                _logger.LogInformation("Payment ID: {PaymentId}", paymentResult.PaymentId);
+                _logger.LogInformation("VNPAY Transaction ID: {VnpayTransactionId}", paymentResult.VnpayTransactionId);
+                _logger.LogInformation("Timestamp: {Timestamp}", paymentResult.Timestamp);
+                _logger.LogInformation("Card Type: {CardType}", paymentResult.CardType);
+                _logger.LogInformation("Banking Info: {BankingInfo}", paymentResult.BankingInfor != null ? $"{paymentResult.BankingInfor.BankCode} - {paymentResult.BankingInfor.BankTransactionId}" : "N/A");
+
                 // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
                 return Ok();
             }
             catch (VnpayException ex)  // Bắt lỗi liên quan đến VNPAY
             {
+                _logger.LogError(ex, "VNPAY Error: {Message}, TransactionStatusCode: {TransactionStatusCode}, PaymentResponseCode: {PaymentResponseCode}", ex.Message, ex.TransactionStatusCode, ex.PaymentResponseCode);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error occurred while processing payment");
                 return BadRequest(ex.Message);
             }
         }
