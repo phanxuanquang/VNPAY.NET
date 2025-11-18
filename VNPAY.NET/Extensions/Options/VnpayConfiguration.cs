@@ -18,9 +18,9 @@ namespace VNPAY.Extensions.Options
         public string HashSecret { get; set; }
 
         /// <summary>
-        /// URL của trang web thanh toán.
+        /// URL của trang web thanh toán. Mặc định là URL thanh toán môi trường TEST
         /// </summary>
-        public string BaseUrl { get; set; }
+        public string BaseUrl { get; set; } = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 
         /// <summary>
         /// URL mà VNPAY sẽ gọi lại sau khi giao dịch hoàn tất.

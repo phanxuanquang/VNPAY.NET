@@ -12,7 +12,7 @@ namespace VNPAY.Extensions
         /// </summary>
         /// <param name="value">Giá trị enum cần lấy mô tả.</param>
         /// <returns>Mô tả của giá trị enum nếu có, nếu không thì trả về tên giá trị enum.</returns>
-        internal static string GetDescription(this Enum value)
+        public static string GetDescription(this Enum value)
         {
             var field = value.GetType().GetField(value.ToString());
             if (field == null)

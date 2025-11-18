@@ -4,10 +4,6 @@ using VNPAY.Models.Enums;
 
 namespace VNPAY
 {
-    /// <summary>
-    /// Giao diện định nghĩa các phương thức cần thiết để tích hợp với hệ thống thanh toán VNPAY.
-    /// Các phương thức trong giao diện này cung cấp chức năng tạo URL thanh toán và thực hiện giao dịch.
-    /// </summary>
     public interface IVnpayClient
     {
 
@@ -30,10 +26,16 @@ namespace VNPAY
 
         /// <summary>
         /// Thực hiện giao dịch thanh toán và trả về kết quả.
-        /// Phương thức này được gọi khi nhận được thông tin callback từ VNPAY.
         /// </summary>
         /// <param name="collections">Thông tin các tham số trả về từ VNPAY qua callback.</param>
         /// <returns></returns>
         VnpayPaymentResult GetPaymentResult(IQueryCollection parameters);
+
+        /// <summary>
+        /// Thực hiện giao dịch thanh toán và trả về kết quả.
+        /// </summary>
+        /// <param name="httpRequest">HttpRequest được gọi từ VNPAY</param>
+        /// <returns></returns>
+        VnpayPaymentResult GetPaymentResult(HttpRequest httpRequest);
     }
 }

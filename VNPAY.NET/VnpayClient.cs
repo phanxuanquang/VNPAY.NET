@@ -245,6 +245,16 @@ namespace VNPAY
 
             return string.Join("&", validData);
         }
+
+        public VnpayPaymentResult GetPaymentResult(HttpRequest httpRequest)
+        {
+            if (!httpRequest.QueryString.HasValue || httpRequest.Query == null || httpRequest.Query.Count == 0)
+            {
+                throw new ArgumentException("Không có dữ liệu trả về từ VNPAY để xử lý.", nameof(httpRequest));
+            }
+
+            return GetPaymentResult(httpRequest.Query);
+        }
         #endregion
     }
 }

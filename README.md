@@ -54,10 +54,6 @@ flowchart LR
    - Hiển thị kết quả giao dịch (thành công/thất bại/lỗi) cho người dùng.
 
 ## :electric_plug: Cài đặt thư viện `VNPAY.NET`
-> [!NOTE]
-> - Phiên bản dành cho .NET 8 có phiên bản dạng `8.x.x`, và phiên bản dành cho .NET 6 có phiên bản dạng `6.x.x`.
-> - Từ phiên bản 6.5.0 trở lên, thư viện đã hỗ trợ Dependency Injection (DI) để cấu hình dễ dàng hơn.
-
 - Cách 1: Tìm và cài đặt thông qua **NuGet Package Manager** nếu bạn sử dụng Visual Studio.
 
 ![image](https://i.imgur.com/taiJwIs.png)
@@ -89,7 +85,7 @@ Thêm những thông tin cấu hình lấy từ VNPAY vào `appsettings.json` nh
   "VNPAY": {
     "TmnCode": "A1B2C3D4", // Ví dụ
     "HashSecret": "A4D3C4C6D1Đ3D1D4QCS16PAFHI2GJ42D", // Ví dụ
-    "BaseUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", // Ví dụ URL của môi trường Sandbox
+    "BaseUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", // Tùy chọn, mặc định là URL thanh toán môi trường TEST
     "CallbackUrl": "https://localhost:1234/api/Vnpay/Callback", // Ví dụ
     "Version": "2.1.0", // Tùy chọn, mặc định là 2.1.0
     "OrderType": "other" // Tùy chọn, mặc định là other
@@ -106,20 +102,15 @@ using VNPAY.Extensions;
 
 var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
-builder.Services.AddVnPayPayment(configs =>
-{
-    configs.TmnCode = vnpayConfig["TmnCode"]!;
-    configs.HashSecret = vnpayConfig["HashSecret"]!;
-    configs.BaseUrl = vnpayConfig["BaseUrl"]!;
-    configs.CallbackUrl = vnpayConfig["CallbackUrl"]!;
-});
-
-builder.Services.AddControllers();
-
-var app = builder.Build();
-
-app.MapControllers();
-app.Run();
+ builder.Services.AddVnpayClient(config =>
+ {
+     config.TmnCode = vnpayConfig["TmnCode"]!;
+     config.HashSecret = vnpayConfig["HashSecret"]!;
+     config.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+     config.BaseUrl = vnpayConfig["BaseUrl"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là URL thanh toán môi trường TEST
+     config.Version = vnpayConfig["Version"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "2.1.0"
+     config.OrderType = vnpayConfig["OrderType"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "other"
+ });
 ```
 
 ### 3. Sử dụng trong Controller
@@ -133,11 +124,11 @@ using VNPAY.NET;
 [Route("api/[controller]")]
 public class VnpayController : ControllerBase
 {
-    private readonly IVnpay _vnpay;
+    private readonly IVnpayClient _vnpayClient;
 
-    public VnpayController(IVnpay vnpay)
+    public VnpayController(IVnpayClient vnpayClient)
     {
-        _vnpay = vnpay;
+         _vnpayClient = vnpayClient;
     }
     
     // Các phương thức xử lý thanh toán...
@@ -146,49 +137,32 @@ public class VnpayController : ControllerBase
 ## ⚙️ Xây dựng các Controller xử lý thanh toán
 
 ### 1. Tạo URL thanh toán
+
+- Cách 1 - Tạo nhanh:
+
 ```csharp
-[HttpGet("CreatePaymentUrl")]
-public ActionResult<string> CreatePaymentUrl(double moneyToPay, string description)
-{
-    try
-    {
-        var ipAddress = NetworkHelper.GetIpAddress(HttpContext); // Lấy địa chỉ IP của thiết bị thực hiện giao dịch
+var moneyToPay = 10000; // Số tiền phải thanh toán (ví dụ: 10.000 VND)
+var description = "Thanh toan don hang ABC"; // Mô tả giao dịch
+var bankCode = BankCode.ANY; // Mã phương thức thanh toán
 
-        var request = new PaymentRequest
-        {
-            PaymentId = DateTime.Now.Ticks,
-            Money = moneyToPay,
-            Description = description,
-            IpAddress = ipAddress,
-            BankCode = BankCode.ANY, // Tùy chọn. Mặc định là tất cả phương thức giao dịch
-            CreatedDate = DateTime.Now, // Tùy chọn. Mặc định là thời điểm hiện tại
-            Currency = Currency.VND, // Tùy chọn. Mặc định là VND (Việt Nam đồng)
-            Language = DisplayLanguage.Vietnamese // Tùy chọn. Mặc định là tiếng Việt
-        };
-
-        var paymentUrl = _vnpay.GetPaymentUrl(request);
-
-        return Created(paymentUrl, paymentUrl);
-    }
-    catch (Exception ex)
-    {
-        return BadRequest(ex.Message);
-    }
-}
+var paymentUrlInfo = _vnpayClient.CreatePaymentUrl(money, description, bankCode);
+var paymentUrl = paymentUrlInfo.Url;
 ```
 
-- Trong đó:
+- Cách 2 - Tạo yêu cầu thanh toán chi tiết:
 
-| **Thuộc tính**    | **Mô tả**                                                                                                                                                                    |
-|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **PaymentId**        | Mã tham chiếu giao dịch (Transaction Reference). Đây là mã số duy nhất dùng để xác định giao dịch. Bắt buộc và không được trùng lặp giữa các giao dịch. |
-| **Description**      | Thông tin mô tả nội dung thanh toán, không dấu và không chứa ký tự đặc biệt.                                                                            |
-| **Money**            | Số tiền thanh toán. Không chứa ký tự phân cách thập phân, phần nghìn, hoặc ký hiệu tiền tệ.                                                            |
-| **BankCode**         | Mã phương thức thanh toán, ngân hàng hoặc ví điện tử. Nếu giá trị là `BankCode.ANY`, người dùng sẽ chọn phương thức thanh toán trên giao diện VNPAY.    |
-| **IpAddress**        | Địa chỉ IP của người thực hiện giao dịch.                                                                                    |
-| **CreatedDate**      | Thời điểm khởi tạo giao dịch. Mặc định là ngày giờ hiện tại tại thời điểm tạo yêu cầu.                                                                  |
-| **Currency**         | Đơn vị tiền tệ sử dụng thanh toán. Hiện tại chỉ hỗ trợ loại tiền tệ là `VND`.                                                                           |
-| **Language**         | Ngôn ngữ hiển thị trên giao diện thanh toán của VNPAY. Mặc định là `Vietnamese`.                                                                       |
+```csharp
+var request = new VnpayPaymentRequest
+{
+    Money = 10000, // Số tiền thanh toán (ví dụ: 10.000 VND)
+    Description = "Thanh toan don hang ABC", // Mô tả giao dịch
+    BankCode = BankCode.ANY, // Tùy chọn. Mã phương thức thanh toán. Mặc định là tất cả phương thức giao dịch
+    Language = DisplayLanguage.Vietnamese // Tùy chọn. Mặc định là tiếng Việt
+};
+
+var paymentUrlInfor = _vnpayClient.CreatePaymentUrl(request);
+var paymentUrl = paymentUrlInfo.Url;
+```
 
 ### 2. Xử lý sau thanh toán
 
@@ -200,30 +174,24 @@ Sử dụng IPN (Instant Payment Notification) URL cho phép hệ thống backen
 > - Lưu ý chi tiết đọc tại [**ĐÂY**](https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html#l%C6%B0u-%C3%BD-1).
 
 ```csharp
-[HttpGet("IpnAction")]
-public IActionResult IpnAction()
+[HttpGet("ProceedAfterPayment")]
+public IActionResult ProceedAfterPayment()
 {
-    if (Request.QueryString.HasValue)
+    try
     {
-        try
-        {
-            var paymentResult = _vnpay.GetPaymentResult(Request.Query);
-            if (paymentResult.IsSuccess)
-            {
-                // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
-                return Ok();
-            }
+        var paymentResult = _vnpayClient.GetPaymentResult(this.Request);
 
-            // Thực hiện hành động nếu thanh toán thất bại tại đây. Ví dụ: Hủy đơn hàng.
-            return BadRequest("Thanh toán thất bại");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
+        return Ok();
     }
-
-    return NotFound("Không tìm thấy thông tin thanh toán.");
+    catch (VnpayException ex)  // Bắt lỗi liên quan đến VNPAY
+    {
+        return BadRequest(ex.Message);
+    }
+    catch (Exception ex)
+    {
+        return BadRequest(ex.Message);
+    }
 }
 ```
 
@@ -235,74 +203,6 @@ public IActionResult IpnAction()
 > [!WARNING]
 > - URL này chỉ kiểm tra kết quả thanh toán và trả về cho người dùng.
 > - Không nên được sử dụng để xử lý tiếp đơn hàng.
-
-```csharp
-[HttpGet("Callback")]
-public ActionResult<string> Callback()
-{
-    if (Request.QueryString.HasValue)
-    {
-        try
-        {
-            var paymentResult = _vnpay.GetPaymentResult(Request.Query);
-            var resultDescription = $"{paymentResult.PaymentResponse.Description}. {paymentResult.TransactionStatus.Description}.";
-
-            if (paymentResult.IsSuccess)
-            {
-                return Ok(resultDescription);
-            }
-
-            return BadRequest(resultDescription);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    return NotFound("Không tìm thấy thông tin thanh toán.");
-}
-```
-
-Kết quả trả về có dạng như sau:
-```json
-{
-    "paymentId": 638697289176052600,
-    "isSuccess": true,
-    "description": "1",
-    "timestamp": "2024-12-13T23:21:59",
-    "vnpayTransactionId": 14742893,
-    "paymentMethod": "ATM",
-    "paymentResponse": {
-        "code": 0,
-        "description": "Giao dịch thành công"
-    },
-    "transactionStatus": {
-        "code": 0,
-        "description": "Giao dịch thành công"
-    },
-    "bankingInfor": {
-        "bankCode": "NCB",
-        "bankTransactionId": "VNP14742893"
-    }
-}
-```
-- Trong đó:
-
-| Thuộc tính               | Kiểu dữ liệu | Mô tả                                                  |
-|--------------------------|--------------|--------------------------------------------------------|
-| `PaymentId`              | long         | Mã thanh toán duy nhất cho giao dịch.                  |
-| `IsSuccess`              | bool         | Trạng thái giao dịch thành công. Giá trị là `true` nếu chữ ký chính xác, *PaymentResponse.ResponseCode* và *TransactionStatus.Code* đều bằng 0. |
-| `Description`            | string       | Mô tả về giao dịch.                        |
-| `Timestamp`              | DateTime     | Thời gian giao dịch được thực hiện.                   |
-| `VnpayTransactionId`     | long         | Mã giao dịch của hệ thống VNPAY.                       |
-| `PaymentMethod`          | string       | Phương thức thanh toán (ví dụ: ATM, thẻ tín dụng).    |
-| `PaymentResponse.Code`   | int          | Mã phản hồi từ hệ thống VNPAY (0 là thành công).       |
-| `PaymentResponse.Description` | string   | Mô tả chi tiết mã phản hồi từ VNPAY.                   |
-| `TransactionStatus.Code` | int          | Mã trạng thái giao dịch (0 là thành công).             |
-| `TransactionStatus.Description` | string | Mô tả chi tiết về trạng thái giao dịch.                |
-| `BankingInfor.BankCode`  | string       | Mã ngân hàng (ví dụ: NCB, Vietcombank).                |
-| `BankingInfor.BankTransactionId` | string | Mã giao dịch của ngân hàng.                            |
 
 ## :exclamation: Lưu ý khi triển khai
 - Thay `BaseUrl` thành URL chính thức của VNPAY.

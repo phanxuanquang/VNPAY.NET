@@ -13,12 +13,14 @@ namespace Backend_API_Testing
             #region Add VNPAY Payment Service
             var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
-            builder.Services.AddVnpayPayment(configs =>
+            builder.Services.AddVnpayClient(config =>
             {
-                configs.TmnCode = vnpayConfig["TmnCode"]!;
-                configs.HashSecret = vnpayConfig["HashSecret"]!;
-                configs.BaseUrl = vnpayConfig["BaseUrl"]!;
-                configs.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+                config.TmnCode = vnpayConfig["TmnCode"]!;
+                config.HashSecret = vnpayConfig["HashSecret"]!;
+                config.CallbackUrl = vnpayConfig["CallbackUrl"]!;
+                // config.BaseUrl = vnpayConfig["BaseUrl"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là URL thanh toán môi trường TEST
+                // config.Version = vnpayConfig["Version"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "2.1.0"
+                // config.OrderType = vnpayConfig["OrderType"]!; // Tùy chọn. Nếu không thiết lập, giá trị mặc định là "other"
             });
             #endregion
 

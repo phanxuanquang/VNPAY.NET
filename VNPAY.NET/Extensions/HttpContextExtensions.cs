@@ -10,21 +10,13 @@ namespace VNPAY.Extensions
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public static string GetIpAddress(this HttpContext context)
+        internal static string GetIpAddress(this HttpContext context)
         {
-            var remoteIpAddress = context.Connection.RemoteIpAddress;
+            var remoteIpAddress = context.Connection.RemoteIpAddress ?? throw new InvalidOperationException("Không tìm thấy địa chỉ IP");
 
-            if (remoteIpAddress != null)
-            {
-                if (remoteIpAddress.IsIPv4MappedToIPv6)
-                {
-                    return remoteIpAddress.MapToIPv4().ToString();
-                }
-
-                return remoteIpAddress.ToString();
-            }
-
-            throw new InvalidOperationException("Không tìm thấy địa chỉ IP");
+            return remoteIpAddress.IsIPv4MappedToIPv6
+                ? remoteIpAddress.MapToIPv4().ToString()
+                : remoteIpAddress.ToString();
         }
     }
 }

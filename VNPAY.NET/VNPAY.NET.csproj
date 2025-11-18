@@ -11,11 +11,11 @@
     <Description>Thư viện hỗ trợ tích hợp thanh toán VNPAY sử dụng cho .NET</Description>
     <Copyright>© 2024 Phan Xuan Quang / VNPAY.NET</Copyright>
     <PackageProjectUrl>https://github.com/phanxuanquang/VNPAY.NET</PackageProjectUrl>
-    <Version>6.5.0</Version>
+    <Version>2.1.0</Version>
     <ApplicationIcon>Icon.ico</ApplicationIcon>
     <PackageIcon>Icon.png</PackageIcon>
-    <AssemblyVersion>6.5.0</AssemblyVersion>
-    <FileVersion>6.5.0</FileVersion>
+    <AssemblyVersion>2.1.0</AssemblyVersion>
+    <FileVersion>2.1.0</FileVersion>
     <RepositoryUrl>https://github.com/phanxuanquang/VNPAY.NET</RepositoryUrl>
     <PackageTags>vnpay, vnpay.net, payment,vnPay</PackageTags>
   </PropertyGroup>

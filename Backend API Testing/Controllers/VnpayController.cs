@@ -8,9 +8,9 @@ namespace Backend_API_Testing.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class VnpayController(IVnpayClient vnPay) : ControllerBase
+    public class VnpayController(IVnpayClient vnpayClient) : ControllerBase
     {
-        private readonly IVnpayClient _vnpay = vnPay;
+        private readonly IVnpayClient _vnpayClient = vnpayClient;
 
         /// <summary>
         /// Tạo URL thanh toán từ yêu cầu thanh toán
@@ -24,8 +24,8 @@ namespace Backend_API_Testing.Controllers
         {
             try
             {
-                var paymentUrl = _vnpay.CreatePaymentUrl(money, description, bankCode);
-                return Ok(paymentUrl);
+                var paymentUrlInfo = _vnpayClient.CreatePaymentUrl(money, description, bankCode);
+                return Ok(paymentUrlInfo.Url);
             }
             catch (Exception ex)
             {
@@ -43,8 +43,8 @@ namespace Backend_API_Testing.Controllers
         {
             try
             {
-                var paymentUrl = _vnpay.CreatePaymentUrl(request);
-                return Ok(paymentUrl);
+                var paymentUrlInfor = _vnpayClient.CreatePaymentUrl(request);
+                return Ok(paymentUrlInfor.Url);
             }
             catch (Exception ex)
             {
@@ -59,53 +59,21 @@ namespace Backend_API_Testing.Controllers
         [HttpGet("ProceedAfterPayment")]
         public IActionResult ProceedAfterPayment()
         {
-            if (Request.QueryString.HasValue)
+            try
             {
-                try
-                {
-                    var paymentResult = _vnpay.GetPaymentResult(Request.Query);
-                    // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
-                    return Ok();
-                }
-                catch (VnpayException ex)  // Bắt lỗi liên quan đến VNPAY
-                {
-                    return BadRequest(ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(ex.Message);
-                }
+                var paymentResult = _vnpayClient.GetPaymentResult(this.Request);
+
+                // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
+                return Ok();
             }
-
-            return NotFound("Không tìm thấy thông tin thanh toán.");
-        }
-
-        /// <summary>
-        /// Trả kết quả thanh toán về cho người dùng
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("Callback")]
-        public ActionResult<VnpayPaymentResult> Callback()
-        {
-            if (Request.QueryString.HasValue)
+            catch (VnpayException ex)  // Bắt lỗi liên quan đến VNPAY
             {
-                try
-                {
-                    var paymentResult = _vnpay.GetPaymentResult(Request.Query);
-
-                    return Ok(paymentResult);
-                }
-                catch (VnpayException ex) // Bắt lỗi liên quan đến VNPAY
-                {
-                    return BadRequest(ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(ex.Message);
-                }
+                return BadRequest(ex.Message);
             }
-
-            return NotFound("Không tìm thấy thông tin thanh toán.");
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
