@@ -1,4 +1,6 @@
-﻿namespace VNPAY.Models
+﻿using System;
+
+namespace VNPAY.Models
 {
     /// <summary>
     /// Phản hồi từ VNPAY sau khi thực hiện giao dịch thanh toán.

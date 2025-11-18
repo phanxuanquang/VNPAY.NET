@@ -13,7 +13,7 @@ namespace Backend_API_Testing
             #region Add VNPAY Payment Service
             var vnpayConfig = builder.Configuration.GetSection("VNPAY");
 
-            builder.Services.AddVnPayPayment(configs =>
+            builder.Services.AddVnpayPayment(configs =>
             {
                 configs.TmnCode = vnpayConfig["TmnCode"]!;
                 configs.HashSecret = vnpayConfig["HashSecret"]!;

@@ -1,4 +1,5 @@
-﻿using VNPAY.Models.Enums;
+﻿using System;
+using VNPAY.Models.Enums;
 
 namespace VNPAY.Models
 {
@@ -16,12 +17,12 @@ namespace VNPAY.Models
         /// <summary>
         /// Thông tin mô tả nội dung thanh toán, không dấu và không bao gồm các ký tự đặc biệt
         /// </summary>
-        public required string Description { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
         /// Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Số tiền phải nằm trong khoảng 5.000 (VND) đến 1.000.000.000 (VND).
         /// </summary>
-        public required double MoneyInVnd { get; set; }
+        public double MoneyInVnd { get; set; }
 
         /// <summary>
         /// Mã phương thức thanh toán, mã loại ngân hàng hoặc ví điện tử thanh toán. Nếu mang giá trị <c>BankCode.ANY</c> thì chuyển hướng người dùng sang VNPAY chọn phương thức thanh toán.

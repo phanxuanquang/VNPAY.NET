@@ -1,5 +1,4 @@
 ﻿using System;
-using VNPAY.Models.Enums;
 
 namespace VNPAY.Models
 {

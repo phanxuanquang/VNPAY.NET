@@ -8,22 +8,22 @@ namespace VNPAY.Extensions.Options
         /// <summary>
         /// Mã cửa hàng của bạn trên VNPAY.
         /// </summary>
-        public required string TmnCode { get; set; }
+        public string TmnCode { get; set; }
 
         /// <summary>
         /// Mật khẩu bảo mật dùng để mã hóa và xác thực giao dịch.
         /// </summary>
-        public required string HashSecret { get; set; }
+        public string HashSecret { get; set; }
 
         /// <summary>
         /// URL của trang web thanh toán.
         /// </summary>
-        public required string BaseUrl { get; set; }
+        public string BaseUrl { get; set; }
 
         /// <summary>
         /// URL mà VNPAY sẽ gọi lại sau khi giao dịch hoàn tất.
         /// </summary>
-        public required string CallbackUrl { get; set; }
+        public string CallbackUrl { get; set; }
 
         /// <summary>
         /// Phiên bản của API mà bạn đang sử dụng.

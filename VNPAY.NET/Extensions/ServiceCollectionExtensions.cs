@@ -1,15 +1,16 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using VNPAY.Extensions.Options;
 
 namespace VNPAY.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddVnPayPayment(this IServiceCollection services, Action<VnpayConfigurations> configureOptions)
+        public static IServiceCollection AddVnpayPayment(this IServiceCollection services, Action<VnpayConfiguration> config)
         {
-            services.Configure(configureOptions);
+            services.Configure(config);
             services.AddHttpContextAccessor();
-            services.AddScoped<IVnpay, Vnpay>();
+            services.AddScoped<IVnpayClient, VnpayClient>();
             return services;
         }
     }

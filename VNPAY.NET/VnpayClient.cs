@@ -17,10 +17,10 @@ namespace VNPAY
 {
     public class VnpayClient : IVnpayClient
     {
-        private readonly VnpayConfigurations _configs;
+        private readonly VnpayConfiguration _configs;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public VnpayClient(IOptions<VnpayConfigurations> configs, IHttpContextAccessor httpContextAccessor)
+        public VnpayClient(IOptions<VnpayConfiguration> configs, IHttpContextAccessor httpContextAccessor)
         {
             configs.Value.EnsureValid();
 
@@ -82,6 +82,26 @@ namespace VNPAY
                 Url = CreatePaymentUrl(parameters, _configs.BaseUrl, _configs.HashSecret),
                 Parameters = parameters
             };
+        }
+
+        public PaymentUrlDetail CreatePaymentUrl(double money, string description, BankCode bankCode = BankCode.ANY)
+        {
+            if (money < 5 * 1000 || money > 1 * 1000 * 1000 * 1000)
+            {
+                throw new ArgumentException("Số tiền thanh toán phải nằm trong khoảng 5.000 (VND) đến 1.000.000.000 (VND).", nameof(money));
+            }
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                throw new ArgumentException("Không được để trống mô tả giao dịch.", nameof(description));
+            }
+
+            return CreatePaymentUrl(new VnpayPaymentRequest
+            {
+                Money = money,
+                Description = description.Trim(),
+                BankCode = bankCode
+            });
         }
 
         public VnpayPaymentResult GetPaymentResult(IQueryCollection parameters)
@@ -225,7 +245,6 @@ namespace VNPAY
 
             return string.Join("&", validData);
         }
-
         #endregion
     }
 }

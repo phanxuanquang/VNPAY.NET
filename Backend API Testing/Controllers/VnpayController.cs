@@ -2,38 +2,30 @@
 using VNPAY;
 using VNPAY.Models;
 using VNPAY.Models.Enums;
+using VNPAY.Models.Exceptions;
 
 namespace Backend_API_Testing.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class VnpayController(IVnpay vnPay) : ControllerBase
+    public class VnpayController(IVnpayClient vnPay) : ControllerBase
     {
-        private readonly IVnpay _vnpay = vnPay;
+        private readonly IVnpayClient _vnpay = vnPay;
 
         /// <summary>
-        /// Tạo url thanh toán
+        /// Tạo URL thanh toán từ yêu cầu thanh toán
         /// </summary>
         /// <param name="money">Số tiền phải thanh toán</param>
         /// <param name="description">Mô tả giao dịch</param>
+        /// <param name="bankCode">Mã phương thức thanh toán</param>
         /// <returns></returns>
-        [HttpGet("CreatePaymentUrl")]
-        public ActionResult<string> CreatePaymentUrl(double money, string description)
+        [HttpPost("CreatePaymentUrl")]
+        public IActionResult CreatePaymentUrl(double money, string description, BankCode bankCode = BankCode.ANY)
         {
             try
             {
-                var request = new PaymentRequest
-                {
-                    MoneyInVnd = money,
-                    Description = description,
-                    BankCode = BankCode.ANY, // Tùy chọn. Mặc định là tất cả phương thức giao dịch
-                    CreatedTime = DateTime.UtcNow, // Tùy chọn. Mặc định là thời điểm hiện tại
-                    Language = DisplayLanguage.Vietnamese // Tùy chọn. Mặc định là tiếng Việt
-                };
-
-                var paymentUrl = _vnpay.GetPaymentUrl(request);
-
-                return Created(paymentUrl, paymentUrl);
+                var paymentUrl = _vnpay.CreatePaymentUrl(money, description, bankCode);
+                return Ok(paymentUrl);
             }
             catch (Exception ex)
             {
@@ -42,17 +34,17 @@ namespace Backend_API_Testing.Controllers
         }
 
         /// <summary>
-        /// Tạo url thanh toán từ PaymentRequest
+        /// Tạo URL thanh toán từ yêu cầu thanh toán
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        [HttpGet("CreatePaymentUrlFromRequest")]
-        public ActionResult<string> CreatePaymentUrlFromRequest(PaymentRequest request)
+        [HttpPost("CreatePaymentUrlFromPaymentRequest")]
+        public IActionResult CreatePaymentUrl([FromBody] VnpayPaymentRequest request)
         {
             try
             {
-                var paymentUrl = _vnpay.GetPaymentUrl(request);
-                return Created(paymentUrl, paymentUrl);
+                var paymentUrl = _vnpay.CreatePaymentUrl(request);
+                return Ok(paymentUrl);
             }
             catch (Exception ex)
             {
@@ -72,14 +64,12 @@ namespace Backend_API_Testing.Controllers
                 try
                 {
                     var paymentResult = _vnpay.GetPaymentResult(Request.Query);
-                    if (paymentResult.IsSuccess)
-                    {
-                        // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
-                        return Ok();
-                    }
-
-                    // Thực hiện hành động nếu thanh toán thất bại tại đây. Ví dụ: Hủy đơn hàng.
-                    return BadRequest("Thanh toán thất bại");
+                    // Thực hiện hành động nếu thanh toán thành công tại đây. Ví dụ: Cập nhật trạng thái đơn hàng trong cơ sở dữ liệu.
+                    return Ok();
+                }
+                catch (VnpayException ex)  // Bắt lỗi liên quan đến VNPAY
+                {
+                    return BadRequest(ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -95,7 +85,7 @@ namespace Backend_API_Testing.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("Callback")]
-        public ActionResult<PaymentResult> Callback()
+        public ActionResult<VnpayPaymentResult> Callback()
         {
             if (Request.QueryString.HasValue)
             {
@@ -103,12 +93,11 @@ namespace Backend_API_Testing.Controllers
                 {
                     var paymentResult = _vnpay.GetPaymentResult(Request.Query);
 
-                    if (paymentResult.IsSuccess)
-                    {
-                        return Ok(paymentResult);
-                    }
-
-                    return BadRequest(paymentResult);
+                    return Ok(paymentResult);
+                }
+                catch (VnpayException ex) // Bắt lỗi liên quan đến VNPAY
+                {
+                    return BadRequest(ex.Message);
                 }
                 catch (Exception ex)
                 {
