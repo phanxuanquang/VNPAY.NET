@@ -11,15 +11,16 @@ using VNPAY.Extensions.Options;
 using VNPAY.Helpers;
 using VNPAY.Models;
 using VNPAY.Models.Enums;
+using VNPAY.Models.Exceptions;
 
 namespace VNPAY
 {
-    public class Vnpay : IVnpay
+    public class VnpayClient : IVnpayClient
     {
         private readonly VnpayConfigurations _configs;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public Vnpay(IOptions<VnpayConfigurations> configs, IHttpContextAccessor httpContextAccessor)
+        public VnpayClient(IOptions<VnpayConfigurations> configs, IHttpContextAccessor httpContextAccessor)
         {
             configs.Value.EnsureValid();
 
@@ -27,59 +28,69 @@ namespace VNPAY
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public string GetPaymentUrl(VnpayPaymentRequest request)
+        public PaymentUrlDetail CreatePaymentUrl(VnpayPaymentRequest request)
         {
             if (request.Money < 5 * 1000 || request.Money > 1 * 1000 * 1000 * 1000)
             {
-                throw new ArgumentException("Số tiền thanh toán phải nằm trong khoảng 5.000 (VND) đến 1.000.000.000 (VND).");
+                throw new ArgumentException("Số tiền thanh toán phải nằm trong khoảng 5.000 (VND) đến 1.000.000.000 (VND).", nameof(request.Money));
             }
 
             if (string.IsNullOrWhiteSpace(request.Description))
             {
-                throw new ArgumentException("Không được để trống mô tả giao dịch.");
+                throw new ArgumentException("Không được để trống mô tả giao dịch.", nameof(request.Description));
             }
 
-            var ipAddress = GetCurrentUserIpAddress();
+            var ipAddress = _httpContextAccessor.HttpContext.GetIpAddress() ?? throw new ArgumentException("Không tìm thấy địa chỉ IP của khách hàng.");
 
-            var requestData = new SortedList<string, string>(new Comparer());
+            var parameters = new SortedList<string, string>(new Comparer());
 
             if (!string.IsNullOrEmpty(_configs.Version))
-                requestData.Add("vnp_Version", _configs.Version);
+                parameters.Add("vnp_Version", _configs.Version);
 
-            requestData.Add("vnp_Command", "pay");
+            parameters.Add("vnp_Command", "pay");
 
             if (!string.IsNullOrEmpty(_configs.TmnCode))
-                requestData.Add("vnp_TmnCode", _configs.TmnCode);
+                parameters.Add("vnp_TmnCode", _configs.TmnCode);
 
-            requestData.Add("vnp_Amount", (request.Money * 100).ToString());
-            requestData.Add("vnp_CreateDate", request.CreatedTime.ToString("yyyyMMddHHmmss"));
-            requestData.Add("vnp_CurrCode", request.Currency.ToString().ToUpper());
+            parameters.Add("vnp_Amount", (request.Money * 100).ToString());
+            parameters.Add("vnp_CreateDate", request.CreatedTime.ToString("yyyyMMddHHmmss"));
+            parameters.Add("vnp_CurrCode", request.Currency.ToString().ToUpper());
 
             if (!string.IsNullOrEmpty(ipAddress))
-                requestData.Add("vnp_IpAddr", ipAddress);
+                parameters.Add("vnp_IpAddr", ipAddress);
 
-            requestData.Add("vnp_Locale", request.Language.GetDescription());
+            parameters.Add("vnp_Locale", request.Language.GetDescription());
 
             var bankCode = request.BankCode == BankCode.ANY ? string.Empty : request.BankCode.ToString();
             if (!string.IsNullOrEmpty(bankCode))
-                requestData.Add("vnp_BankCode", bankCode);
+                parameters.Add("vnp_BankCode", bankCode);
 
             if (!string.IsNullOrEmpty(request.Description.Trim()))
-                requestData.Add("vnp_OrderInfo", request.Description.Trim());
+                parameters.Add("vnp_OrderInfo", request.Description.Trim());
 
             if (!string.IsNullOrEmpty(_configs.OrderType))
-                requestData.Add("vnp_OrderType", _configs.OrderType);
+                parameters.Add("vnp_OrderType", _configs.OrderType);
 
             if (!string.IsNullOrEmpty(_configs.CallbackUrl))
-                requestData.Add("vnp_ReturnUrl", _configs.CallbackUrl);
+                parameters.Add("vnp_ReturnUrl", _configs.CallbackUrl);
 
-            requestData.Add("vnp_TxnRef", request.PaymentId.ToString());
+            parameters.Add("vnp_TxnRef", request.PaymentId.ToString());
 
-            return CreatePaymentUrl(requestData, _configs.BaseUrl, _configs.HashSecret);
+            return new PaymentUrlDetail
+            {
+                PaymentId = request.PaymentId,
+                Url = CreatePaymentUrl(parameters, _configs.BaseUrl, _configs.HashSecret),
+                Parameters = parameters
+            };
         }
 
         public VnpayPaymentResult GetPaymentResult(IQueryCollection parameters)
         {
+            if (parameters == null || parameters.Count == 0)
+            {
+                throw new ArgumentException("Không có dữ liệu trả về từ VNPAY để xử lý.", nameof(parameters));
+            }
+
             var responseData = parameters
                 .Where(kv => !string.IsNullOrEmpty(kv.Key) && kv.Key.StartsWith("vnp_"))
                 .ToDictionary(kv => kv.Key, kv => kv.Value.ToString());
@@ -115,49 +126,54 @@ namespace VNPAY
                 }
             }
 
-            var responseCodeValue = (ResponseCode)sbyte.Parse(responseCode);
+            var responseCodeValue = (PaymentResponseCode)sbyte.Parse(responseCode);
             var transactionStatusCode = (TransactionStatusCode)sbyte.Parse(transactionStatus);
+
+            if (!IsSignatureCorrect(sortedResponseData, secureHash, _configs.HashSecret))
+            {
+                throw new VnpayException
+                {
+                    Message = "Chữ ký xác thực không khớp.",
+                    TransactionStatusCode = transactionStatusCode,
+                    PaymentResponseCode = responseCodeValue
+                };
+            }
+
+            if (transactionStatusCode != TransactionStatusCode.Code_00)
+            {
+                throw new VnpayException
+                {
+                    Message = transactionStatusCode.GetDescription(),
+                    TransactionStatusCode = transactionStatusCode,
+                    PaymentResponseCode = responseCodeValue
+                };
+            }
+
+            if (responseCodeValue != PaymentResponseCode.Code_00)
+            {
+                throw new VnpayException
+                {
+                    Message = responseCodeValue.GetDescription(),
+                    TransactionStatusCode = transactionStatusCode,
+                    PaymentResponseCode = responseCodeValue
+                };
+            }
 
             return new VnpayPaymentResult
             {
                 PaymentId = long.Parse(txnRef),
                 VnpayTransactionId = long.Parse(transactionNo),
-                IsSuccess = transactionStatusCode == TransactionStatusCode.Code_00 
-                    && responseCodeValue == ResponseCode.Code_00 
-                    && IsSignatureCorrect(sortedResponseData, secureHash, _configs.HashSecret),
                 Description = orderInfo,
-                PaymentMethod = string.IsNullOrEmpty(cardType)
-                    ? "Không xác định"
-                    : cardType,
+                CardType = cardType,
                 Timestamp = string.IsNullOrEmpty(payDate)
                     ? DateTime.UtcNow
                     : DateTime.ParseExact(payDate, "yyyyMMddHHmmss", CultureInfo.InvariantCulture),
-                TransactionStatus = new TransactionStatus
-                {
-                    Code = transactionStatusCode,
-                    Description = transactionStatusCode.GetDescription()
-                },
-                PaymentResponse = new PaymentResponse
-                {
-                    Code = responseCodeValue,
-                    Description = responseCodeValue.GetDescription()
-                },
                 BankingInfor = new BankingInfor
                 {
                     BankCode = bankCode,
-                    BankTransactionId = string.IsNullOrEmpty(bankTranNo)
-                        ? "Không xác định"
-                        : bankTranNo,
+                    BankTransactionId = bankTranNo,
                 }
             };
-        }
-
-        private string GetCurrentUserIpAddress()
-        {
-            var httpContext = _httpContextAccessor.HttpContext;
-            return httpContext == null 
-                ? throw new InvalidOperationException("HttpContext không khả dụng") 
-                : httpContext.GetIpAddress();
         }
 
         #region Private Payment Helper Methods

@@ -10,7 +10,7 @@ namespace VNPAY.Extensions
         {
             services.Configure(configureOptions);
             services.AddHttpContextAccessor();
-            services.AddScoped<IVnpay, Vnpay>();
+            services.AddScoped<IVnpayClient, VnpayClient>();
             return services;
         }
     }

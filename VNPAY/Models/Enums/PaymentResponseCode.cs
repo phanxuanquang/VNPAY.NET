@@ -5,7 +5,7 @@ namespace VNPAY.Models.Enums
     /// <summary>
     /// Mã phản hồi qua IPN và Callback URL
     /// </summary>
-    public enum ResponseCode : sbyte
+    public enum PaymentResponseCode : sbyte
     {
         /// <summary>
         /// Giao dịch thành công

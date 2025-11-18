@@ -12,7 +12,7 @@ namespace VNPAY.Models
         /// Mã tham chiếu giao dịch (Transaction Reference). Đây là mã số duy nhất dùng để xác định giao dịch.  
         /// Lưu ý: Giá trị này bắt buộc và cần đảm bảo không bị trùng lặp giữa các giao dịch.
         /// </summary>
-        public long PaymentId { get; protected set; } = DateTime.UtcNow.Ticks;
+        public long PaymentId { get; internal set; } = DateTime.UtcNow.Ticks;
 
         /// <summary>
         /// Thông tin mô tả nội dung thanh toán, không dấu và không bao gồm các ký tự đặc biệt
@@ -30,9 +30,9 @@ namespace VNPAY.Models
         public BankCode BankCode { get; set; } = BankCode.ANY;
 
         /// <summary>
-        /// Thời điểm khởi tạo giao dịch. Giá trị mặc định là ngày và giờ hiện tại tại thời điểm yêu cầu được khởi tạo.  
+        /// Thời gian tạo yêu cầu thanh toán, được ghi nhận tại thời điểm khởi tạo yêu cầu thanh toán theo chuẩn UTC.  
         /// </summary>
-        public DateTime CreatedTime { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedTime { get; internal set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Đơn vị tiền tệ sử dụng thanh toán. Hiện tại chỉ hỗ trợ VND
